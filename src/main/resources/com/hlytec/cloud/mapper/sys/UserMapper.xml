@@ -1,0 +1,111 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.hlytec.cloud.biz.system.user.mapper.UserMapper">
+    <resultMap id="userResultMap" type="com.hlytec.cloud.biz.system.user.model.entity.User">
+        <id property="id" column="id" jdbcType="VARCHAR"/>
+        <result property="nickName" column="nick_name" jdbcType="VARCHAR"/>
+        <result property="area" column="area" jdbcType="VARCHAR"/>
+        <result property="sex" column="sex" jdbcType="TINYINT"/>
+        <result property="password" column="password" jdbcType="VARCHAR"/>
+        <result property="email" column="email" jdbcType="VARCHAR"/>
+        <result property="phone" column="phone" jdbcType="VARCHAR"/>
+        <result property="photo" column="photo" jdbcType="VARCHAR"/>
+        <result property="introduction" column="introduction" jdbcType="VARCHAR"/>
+        <result property="status" column="status" jdbcType="TINYINT"/>
+        <result property="deptId" column="dept_id" jdbcType="VARCHAR"/>
+        <result property="loginName" column="login_name" jdbcType="VARCHAR"/>
+        <result property="createUser" column="create_user" jdbcType="VARCHAR"/>
+        <result property="createTime" column="create_time" jdbcType="TIMESTAMP"/>
+        <result property="updateUser" column="update_user" jdbcType="VARCHAR"/>
+        <result property="updateTime" column="update_time" jdbcType="TIMESTAMP"/>
+        <result property="remarks" column="remarks" jdbcType="VARCHAR"/>
+        <result property="deleted" column="is_delete" jdbcType="TINYINT"/>
+        <association property="deptName" javaType="String">
+            <result property="name" column="dept_name" jdbcType="VARCHAR"/>
+        </association>
+        <collection property="roles" javaType="list" ofType="com.hlytec.cloud.biz.system.role.model.entity.Role">
+            <id property="id" column="role_id" jdbcType="VARCHAR"/>
+            <result property="role" column="role" jdbcType="VARCHAR"/>
+            <result property="description" column="description" jdbcType="VARCHAR"/>
+            <result property="available" column="available" jdbcType="TINYINT"/>
+            <collection property="menus" javaType="java.util.List" ofType="com.hlytec.cloud.biz.system.menu.model.entity.Menu">
+                <id property="id" column="menu_id"/>
+                <result property="name" column="name"/>
+                <result property="resourceType" column="resource_type"/>
+                <result property="permission" column="permission"/>
+                <result property="url" column="url"/>
+                <result property="parentId" column="parent_id"/>
+                <result property="parentIds" column="parent_ids"/>
+                <result property="available" column="available"/>
+            </collection>
+        </collection>
+    </resultMap>
+
+    <select id="getUserByLoginName" parameterType="string" resultType="com.hlytec.cloud.biz.system.user.model.entity.User">
+        select * from sys_user where login_name=#{loginName} and is_delete=0
+    </select>
+
+    <insert id="saveUserRole" parameterType="list">
+        insert into sys_user_role(user_id, role_id) values
+            <foreach collection="userRoleList" item="item" separator=",">
+                (#{item.userId}, #{item.roleId})
+            </foreach>
+    </insert>
+
+    <delete id="deleteUserRole">
+        delete from sys_user_role where user_id in
+        <foreach collection="userIds" item="userId" open="(" separator="," close=")">
+            #{userId}
+        </foreach>
+    </delete>
+
+    <update id="updateUserRole">
+        update sys_user_role set role_id=#{roleIds} where user_id=#{userId}
+    </update>
+
+    <select id="getRoleByUser" resultType="String">
+        select role_id from sys_user_role where user_id=#{userId}
+    </select>
+    <select id="findUserList" resultMap="userResultMap" parameterType="com.hlytec.cloud.biz.system.user.model.vo.QueryUserVo">
+        select su.*,
+               sr.id as role_id,sr.role,sr.description,sr.available,
+               sm.id as menu_id,sm.name,sm.resource_type,sm.permission,sm.url,sm.parent_id,sm.parent_ids,sm.available,
+               sd.name as dept_name
+        from sys_user su
+                 left join sys_user_role sur on su.id=sur.user_id
+                 left join sys_role sr on sr.id=sur.role_id
+                 left join sys_role_menu srm on sr.id = srm .role_id
+                 left join sys_menu sm on srm .menu_id = sm.id
+                 left join sys_department sd on su.dept_id = sd.id
+        <where>
+            su.is_delete = 0
+            <if test="queryUserVo != null">
+                <if test="queryUserVo.nickName != null and queryUserVo.nickName != ''">
+                    and su.nick_name like concat('%',#{queryUserVo.nickName},'%')
+                </if>
+                <if test="queryUserVo.loginName != null and queryUserVo.loginName != ''">
+                    and su.login_name like concat('%',#{queryUserVo.loginName},'%')
+                </if>
+                <if test="queryUserVo.deptId != null and queryUserVo.deptId != ''">
+                    and  su.dept_id=#{queryUserVo.deptId}
+                </if>
+                <if test="queryUserVo.status != null">
+                    and  su.status=#{queryUserVo.status}
+                </if>
+                <if test="queryUserVo.roleId != null and queryUserVo.roleId != ''">
+                    and sr.id=#{queryUserVo.roleId}
+                </if>
+            </if>
+        </where>
+        order by su.create_time
+    </select>
+    <select id="findUserList" resultType="com.hlytec.cloud.biz.system.user.model.entity.User">
+        select u.*,dept.name dept_name from sys_user u left join sys_department dept on u.dept_id=dept.id
+        where u.is_delete=0
+          and (#{nickName} IS NULL OR u.nick_name like #{nickName})
+          and (#{loginName} IS NULL OR u.login_name like #{loginName})
+          and (#{sex} IS NULL OR u.sex=#{sex})
+          and (#{phone} IS NULL OR u.phone=#{phone})
+          and (#{status} IS NULL OR u.status=#{status})
+    </select>
+</mapper>

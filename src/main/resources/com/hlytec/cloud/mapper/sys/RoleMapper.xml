@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.hlytec.cloud.biz.system.role.mapper.RoleMapper">
+
+    <resultMap id="roleResultMap" type="com.hlytec.cloud.biz.system.role.model.entity.Role">
+        <id property="id" column="id" jdbcType="VARCHAR"/>
+        <result property="role" column="role" jdbcType="VARCHAR"/>
+        <result property="description" column="description" jdbcType="VARCHAR"/>
+        <result property="available" column="available" jdbcType="TINYINT"/>
+        <result property="isAdmin" column="is_admin" jdbcType="TINYINT"/>
+        <result property="remarks" column="remarks" jdbcType="VARCHAR"/>
+        <result property="createTime" column="create_time" jdbcType="TIMESTAMP"/>
+        <collection property="menus" javaType="list" ofType="com.hlytec.cloud.biz.system.menu.model.entity.Menu">
+            <id property="id" column="menu_id" jdbcType="VARCHAR"/>
+            <result column="name" property="name" jdbcType="VARCHAR"/>
+            <result column="resource_type" property="resourceType" jdbcType="VARCHAR"/>
+            <result column="permission" property="permission" jdbcType="VARCHAR"/>
+            <result column="url" property="url" jdbcType="VARCHAR"/>
+            <result column="parent_id" property="parentId" jdbcType="VARCHAR"/>
+            <result column="parent_ids" property="parentIds" jdbcType="VARCHAR"/>
+            <result column="available" property="available" jdbcType="TINYINT"/>
+        </collection>
+    </resultMap>
+
+    <select id="queryRoleList" resultMap="roleResultMap" parameterType="com.hlytec.cloud.biz.system.role.model.vo.QueryRoleVo">
+        select sr.*,sm.id as menu_id,sm.name,sm.resource_type, sm.permission, sm.url, sm.parent_id, sm.parent_ids, sm.available
+        from sys_role sr
+        left join sys_role_menu srm on sr.id=srm.role_id
+        left join sys_menu sm on srm.menu_id=sm.id
+        <where>
+            sr.is_delete = 0
+            <if test="queryRole.role != null and queryRole.role != ''">
+                and sr.role like concat('%',#{queryRole.role},'%')
+            </if>
+            <if test="queryRole.description != null and queryRole.description != ''">
+                and sr.description like concat('%',#{queryRole.description},'%')
+            </if>
+            <if test="queryRole.remarks != null and queryRole.remarks != ''">
+                and sr.remarks like concat('%',#{queryRole.remarks},'%')
+            </if>
+            <if test="queryRole.available != null">
+                and sr.available=#{queryRole.available}
+            </if>
+        </where>
+        order by sr.create_time desc
+    </select>
+
+    <insert id="insertRoleMenu" parameterType="list">
+        insert into sys_role_menu(role_id, menu_id) values
+            <foreach collection="roleMenuList" item="item" separator=",">
+                (#{item.roleId}, #{item.menuId})
+            </foreach>
+    </insert>
+
+    <delete id="deleteRoleMenu" parameterType="List">
+        delete from sys_role_menu where role_id in
+            <foreach collection="roleIds" item="roleId" open="(" separator="," close=")">
+                #{roleId}
+            </foreach>
+    </delete>
+
+    <update id="updateRoleMenu">
+        update sys_role_menu set menu_id=
+        <foreach collection="menus" item="item" separator=" " open="case" close="end">
+            when role_id=#{roleId} then #{item}
+        </foreach>
+        where role_id=#{roleId}
+    </update>
+
+    <select id="getRoleMenu" resultType="String">
+        select menu_id from sys_role_menu where role_id=#{roleId}
+    </select>
+
+    <select id="getUserRole" resultType="String">
+        select user_id from sys_user_role where role_id=#{roleId}
+    </select>
+
+</mapper>

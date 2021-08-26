@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.hlytec.cloud.biz.system.department.mapper.DepartmentMapper">
+
+    <sql id="base_column_list">
+        id,name,address,zip_code,master,parent_id,parent_ids,avaliable
+    </sql>
+    <update id="updateStatusById" parameterType="com.hlytec.cloud.biz.system.department.model.vo.QueryDeptVo">
+        update sys_department set avaliable=#{avaliable} where id =#{id}
+    </update>
+
+    <select id="getParentDept" resultType="com.hlytec.cloud.biz.system.department.model.po.DeptTree">
+        select
+        <include refid="base_column_list"/>
+        from sys_department where is_delete=0 order by
+        create_time asc
+    </select>
+    <select id="getAllSubDepts" resultType="com.hlytec.cloud.biz.system.department.model.po.DeptTree">
+        select
+        <include refid="base_column_list"/>
+        from sys_department where parent_id=#{parentId} and is_delete=0 order by create_time asc
+    </select>
+    <select id="getDeptList" resultType="com.hlytec.cloud.biz.system.department.model.entity.Department">
+        select * from sys_department
+        where is_delete=0
+          and (#{name} IS NULL OR  name like concat('%',#{name},'%'))
+          and (#{zipCode} IS NULL OR zip_code=#{zipCode})
+          and (#{master} IS NULL OR master like concat('%',#{master},'%'))
+          and (#{avaliable} IS NULL OR avaliable=#{avaliable})
+    </select>
+    <select id="getDepts" resultType="com.hlytec.cloud.biz.system.department.model.po.DeptTree">
+         select * from sys_department
+        where is_delete=0
+          and (#{name} IS NULL OR  name like concat('%',#{name},'%'))
+          and (#{zipCode} IS NULL OR zip_code=#{zipCode})
+          and (#{master} IS NULL OR master like concat('%',#{master},'%'))
+          and (#{avaliable} IS NULL OR avaliable=#{avaliable})
+    </select>
+    <select id="getDeptByName" resultType="com.hlytec.cloud.biz.system.department.model.entity.Department">
+        select *from sys_department where is_delete=0 and name=#{deptName}
+    </select>
+</mapper>

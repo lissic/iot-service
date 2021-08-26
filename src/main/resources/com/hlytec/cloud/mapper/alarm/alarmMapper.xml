@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.hlytec.cloud.biz.alarm.mapper.AlarmMapper">
+    <resultMap id="alarmResult" type="com.hlytec.cloud.biz.alarm.model.entity.Alarm" >
+        <id property="id" column="id" jdbcType="VARCHAR"/>
+        <result property="alarmObject" column="alarm_object" jdbcType="VARCHAR"/>
+        <result property="alarmStrategyId" column="alarm_strategy_id" jdbcType="VARCHAR"/>
+        <result property="alarmVal" column="alarm_val" jdbcType="VARCHAR"/>
+        <result property="alarmType" column="alarm_type" jdbcType="TINYINT"/>
+        <result property="alarmTime" column="alarm_time" jdbcType="TIMESTAMP"/>
+        <result property="deviceId" column="device_id" jdbcType="VARCHAR"/>
+        <result property="deviceName" column="device_name" jdbcType="VARCHAR"/>
+        <result property="status" column="status" jdbcType="TINYINT"/>
+        <result property="handleRes" column="handle_res" jdbcType="VARCHAR"/>
+        <result property="createUser" column="create_user" jdbcType="VARCHAR"/>
+        <result property="updateUser" column="update_user" jdbcType="VARCHAR"/>
+        <result property="createTime" column="create_time" jdbcType="TIMESTAMP"/>
+        <result property="updateTime" column="update_time" jdbcType="TIMESTAMP"/>
+        <result property="remarks" column="remarks" jdbcType="VARCHAR"/>
+        <association property="deviceName" javaType="String">
+            <result property="name" column="device_name" jdbcType="VARCHAR"/>
+        </association>
+        <association property="alarmStrategyName" javaType="String">
+            <result property="name" column="strategy_name" jdbcType="VARCHAR"/>
+        </association>
+    </resultMap>
+    <select id="findAlarm" parameterType="com.hlytec.cloud.biz.alarm.model.vo.QueryAlarmVo" resultMap="alarmResult">
+        select na.*,nas.name as strategy_name,nd.name as device_name from net_alarm na
+          left join net_alarm_strategy nas on na.alarm_strategy_id = nas.id
+          left join net_device nd on na.device_id = nd.card_id
+          left join sys_station ss on ss.id = nd.station_id
+        <where>
+            na.is_delete=0
+            <if test="queryAlarmVo.alarmType!=null">
+                and na.alarm_type=#{queryAlarmVo.alarmType}
+            </if>
+            <if test="queryAlarmVo.deviceId!=null and queryAlarmVo.deviceId!=''">
+                and na.device_id=#{queryAlarmVo.deviceId}
+            </if>
+            <if test="queryAlarmVo.alarmStrategyName!=null and queryAlarmVo.alarmStrategyName!=''">
+                and nas.name=#{queryAlarmVo.alarmStrategyName}
+            </if>
+            <if test="queryAlarmVo.status!=null">
+                and na.status=#{queryAlarmVo.status}
+            </if>
+            <if test="queryAlarmVo.deviceName!=null and queryAlarmVo.deviceName!=''">
+                and nd.name=#{queryAlarmVo.deviceName}
+            </if>
+            <choose>
+                <when test="queryAlarmVo.alarmType == 1 and queryAlarmVo.loginName != 'admin'">
+                    <if test="queryAlarmVo.area!=null and queryAlarmVo.area!=''">
+                        and ss.area=#{queryAlarmVo.area}
+                    </if>
+                </when>
+            </choose>
+        </where>
+        order by create_time desc
+    </select>
+</mapper>

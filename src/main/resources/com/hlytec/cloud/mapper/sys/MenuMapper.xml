@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.hlytec.cloud.biz.system.menu.mapper.MenuMapper">
+    <resultMap id="base_result_col" type="com.hlytec.cloud.biz.system.menu.model.po.MenuTree">
+        <id column="id" property="id" jdbcType="VARCHAR"/>
+        <result column="name" property="name" jdbcType="VARCHAR"/>
+        <result column="resource_type" property="resourceType" jdbcType="VARCHAR"/>
+        <result column="permission" property="permission" jdbcType="VARCHAR"/>
+        <result column="url" property="url" jdbcType="VARCHAR"/>
+        <result column="parent_id" property="parentId" jdbcType="VARCHAR"/>
+        <result column="parent_ids" property="parentIds" jdbcType="VARCHAR"/>
+        <result column="available" property="available" jdbcType="TINYINT"/>
+    </resultMap>
+
+    <sql id="base_column_list">
+        id
+        ,name,resource_type,permission,url,parent_id,parent_ids,available,create_time
+    </sql>
+
+    <select id="getFirstLevel" resultMap="base_result_col">
+        select
+        <include refid="base_column_list"/>
+        from sys_menu where (ISNULL(parent_id)=1 or LENGTH(trim(parent_id))=0) and is_delete=0
+        <if test="available != null">
+            and available=#{available}
+        </if>
+        order by create_time asc
+    </select>
+
+    <select id="getSubMenus" resultMap="base_result_col">
+        select
+        <include refid="base_column_list"/>
+        from sys_menu where parent_id=#{parentId} and is_delete=0 order by create_time asc
+    </select>
+
+    <select id="getMenuList" resultType="com.hlytec.cloud.biz.system.menu.model.po.MenuTree">
+        select
+        <include refid="base_column_list"/>
+        from sys_menu
+        <where>
+            is_delete=0
+            <if test="queryMenuVo.name != null and queryMenuVo.name != ''">
+                and name like concat('%',#{queryMenuVo.name},'%')
+            </if>
+            <if test="queryMenuVo.resourceType != null and queryMenuVo.resourceType != ''">
+                and resource_type=#{queryMenuVo.resourceType}
+            </if>
+            <if test="queryMenuVo.url != null and queryMenuVo.url != ''">
+                and url like concat('%',#{queryMenuVo.url},'%')
+            </if>
+            <if test="queryMenuVo.available != null">
+                and available=#{queryMenuVo.available}
+            </if>
+        </where>
+        order by create_time asc
+    </select>
+</mapper>

@@ -1,0 +1,111 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.hlytec.cloud.biz.device.mapper.DeviceMapper">
+    <resultMap id="stationResult" type="com.hlytec.cloud.biz.report.model.po.DeviceNumWithStationPo">
+        <id property="stationId" column="stationId" jdbcType="VARCHAR"/>
+        <result property="stationName" column="stationName" jdbcType="VARCHAR"/>
+        <result property="area" column="area" jdbcType="VARCHAR"/>
+        <result property="longitude" column="longitude" jdbcType="DOUBLE"/>
+        <result property="latitude" column="latitude" jdbcType="DOUBLE"/>
+        <collection property="devices" javaType="list" ofType="com.hlytec.cloud.biz.device.model.entity.Device">
+            <id property="id" column="id" jdbcType="VARCHAR"/>
+            <result property="cardId" column="card_id" jdbcType="VARCHAR"/>
+            <result property="name" column="name" jdbcType="VARCHAR"/>
+            <result property="devType" column="dev_type" jdbcType="VARCHAR"/>
+            <result property="volLevel" column="vol_level" jdbcType="TINYINT"/>
+            <result property="dischargeType" column="discharge_type" jdbcType="TINYINT"/>
+            <result property="status" column="status" jdbcType="TINYINT"/>
+        </collection>
+    </resultMap>
+    <resultMap id="deviceAlarm" type="com.hlytec.cloud.biz.report.model.po.DeviceAlarm">
+        <result property="name" column="name" jdbcType="VARCHAR"/>
+        <result property="station" column="station" jdbcType="VARCHAR"/>
+        <result property="status" column="status" jdbcType="TINYINT"/>
+        <result property="num" column="num" jdbcType="TINYINT"/>
+    </resultMap>
+    <select id="getNumWithStatus" resultType="Map">
+        <choose>
+            <when test="loginName=='admin'">
+                select status, count(status) as total from net_device where is_delete= 0 group by status
+            </when>
+            <otherwise>
+                select status, count(status) as total from net_device nd
+                left join sys_station ss on nd.station_id = ss.id
+                where nd.is_delete= 0
+                <if test="area != null and area != ''">
+                    and ss.area = #{area}
+                </if>
+                group by status
+            </otherwise>
+        </choose>
+    </select>
+    <select id="getNumWithStation" resultMap="stationResult">
+        <choose>
+            <when test="loginName=='admin'">
+                select ss.id as stationId,ss.name as stationName,ss.area as area,ss.longitude,ss.latitude,nd.*
+                from sys_station ss left join net_device nd on ss.id = nd.station_id
+                where ss.is_delete = 0 and (nd.is_delete = 0 or isnull(nd.is_delete))
+            </when>
+            <otherwise>
+                select ss.id as stationId,ss.name as stationName,ss.area as area,ss.longitude,ss.latitude,nd.*
+                from sys_station ss left join net_device nd on ss.id = nd.station_id
+                where ss.is_delete = 0 and (nd.is_delete = 0 or isnull(nd.is_delete))
+                <if test="area != null and area != ''">
+                    and ss.area = #{area}
+                </if>
+            </otherwise>
+        </choose>
+
+    </select>
+
+    <select id="getNumWithSysAlarm" resultType="Map">
+        select nas.alarm_level  as level,count(na.id) as total from net_alarm na left join
+        net_alarm_strategy nas on nas.id=na.alarm_strategy_id
+        where na.is_delete =0 and na.device_id in ('3001','3002','3003')
+        group by nas.alarm_level
+    </select>
+
+    <select id="getNumWithDevAlarm" resultType="Map">
+        select nas.alarm_level  as level,count(na.id) as total from net_alarm na left join
+        net_alarm_strategy nas on nas.id=na.alarm_strategy_id
+        where na.is_delete =0 and na.device_id not in ('3001','3002','3003')
+        group by nas.alarm_level
+    </select>
+
+    <select id="getDeviceByCardId" resultType="com.hlytec.cloud.biz.device.model.entity.Device">
+        select * from net_device where is_delete=0
+        <if test="cardId != null and cardId != ''">
+            and card_id=#{cardId}
+        </if>
+    </select>
+    <select id="getAlarmByDevice" resultMap="deviceAlarm">
+        <choose>
+            <when test="loginName=='admin'">
+                select nd.name, nd.status,ss.name as station,count(na.id) as num
+                from net_alarm na
+                left join net_device nd on na.device_id = nd.card_id
+                left join sys_station ss on nd.station_id = ss.id
+                where na.alarm_type = 1 and na.status != 1
+                group by nd.name,station,nd.status
+            </when>
+            <otherwise>
+                select nd.name, nd.status,ss.name as station,count(na.id) as num
+                from net_alarm na
+                left join net_device nd on na.device_id = nd.card_id
+                left join sys_station ss on nd.station_id = ss.id
+                where na.alarm_type = 1 and na.status != 1
+                <if test="area != null and area != ''">
+                    and ss.area = #{area}
+                </if>
+                group by nd.name,station,nd.status
+            </otherwise>
+        </choose>
+    </select>
+    <select id="getDeviceByArea" resultType="String">
+        select nd.id from net_device nd left join sys_station ss on ss.id = nd.station_id where ss.is_delete = 0
+         and nd.is_delete = 0
+        <if test="area != null and area != ''">
+           and ss.area = #{area}
+        </if>
+    </select>
+</mapper>
